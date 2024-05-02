@@ -27,23 +27,26 @@ public class Client {
                 if (!isLoadCommand) System.out.println("Введите текст сообщения");
                 else {
                     System.out.println("Введите путь, по которому необходимо загрузить файл на сервер");
-                    // isLoadCommand = false;
-                }
-                String text = scanner.nextLine();
-                if (isLoadCommand) {
+                    //  isLoadCommand = false;
+                    String filepath = scanner.nextLine();
                     System.out.println("Введите описание файла:");
                     String description = scanner.nextLine();
-                    System.out.println("Введите размер файла:");
+                    System.out.println("Введите размер файла в мегабайтах:");
                     int size = scanner.nextInt();
-                  //  FileMessage fileMessage = new FileMessage(description, size);
-                  //  try {
-                  //      connectionHandler.sendFileDescription(fileMessage);
-                  //  } catch (IOException e) {
-                  //      connectionHandler.close();
-                  //      System.out.println("filedescription");
-                  //  }
+                    FileMessage fileMessage = new FileMessage(description, size);
+                    fileMessage.setFilepath(filepath);
+                    try {
+                        connectionHandler.sendFileDescription(fileMessage);
+                    } catch (IOException e) {
+                        connectionHandler.close();
+                        System.out.println("filedescription");
+                    }
                     isLoadCommand = false;
                 }
+                String text = scanner.nextLine();
+                // if (isLoadCommand) {
+
+                // }
                 if (text.equalsIgnoreCase("/loadfile")) isLoadCommand = true;
                 if (text.equalsIgnoreCase("/exit")) {
                     System.out.println("Соединение прекращено");

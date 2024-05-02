@@ -43,7 +43,11 @@ public class SendReceive implements AutoCloseable {
     }
 
     public FileMessage receiveFileDescription() throws IOException, ClassNotFoundException {
-        return (FileMessage) inputStream.readObject();
+        try {
+            return (FileMessage) inputStream.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

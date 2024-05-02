@@ -25,31 +25,15 @@ public class Server {
     Sender sender;
     ThreadForClient threadForClient;
     SendReceive connectionHandler;
-    private long fileSize;
+    private int fileSize;
     private int amountOfSymbols;
     private int randomName;
     ArrayList<File> files = new ArrayList<>();
 
     public Server(int port) {
         this.port = port;
-        fileSize = 10_000_000_000L;
+        fileSize = 10;
         amountOfSymbols = 200;
-    }
-
-    public int countSymbol(File file) {
-        BufferedReader reader;
-        int count = 0;
-        try {
-            reader = new BufferedReader(new FileReader(file));
-            while (reader.ready()) {
-                for (char symbol : reader.readLine().toCharArray()) {
-                    count++;
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return count;
     }
 
     public synchronized void showFiles() {
@@ -65,9 +49,10 @@ public class Server {
         }
     }
 
-    public synchronized void loadFile(String pathname) {
+    public synchronized void loadFile(/*String pathname*/ FileMessage fileMessage) {
         randomName = (int) (Math.random() * 1000);
-        File fileSource = new File(pathname);
+        char[] descriptionChars = fileMessage.getDescription().toCharArray();
+        File fileSource = new File(fileMessage.getFilepath());
         String fileName = SERVER_STORAGE_LOCATION + fileSource.getName();
         String fileWasCreated;
         File fileDestination;
@@ -79,15 +64,12 @@ public class Server {
             fileDestination = new File(fileName);
         }
         if (!fileSource.isDirectory() && fileSource.exists()) {
-            long bytes = fileSource.length();
-            int symbols = countSymbol(fileSource);
-
-            if (bytes <= fileSize && symbols <= amountOfSymbols) {
+            if (fileMessage.getSize() <= fileSize && descriptionChars.length <= amountOfSymbols) {
                 try {
                     copy(fileSource, fileDestination);
                     if (fileDestination.isFile())
                         files.add(fileDestination);
-                        fileWasCreated = "Файл " + fileDestination.getName() + " был успешно загружен";
+                    fileWasCreated = "Файл " + fileDestination.getName() + " был успешно загружен";
                     Message fileWasCreatedMessage = new Message("server");
                     fileWasCreatedMessage.setText(fileWasCreated);
                     try {
@@ -110,10 +92,9 @@ public class Server {
                 System.out.println(e.getMessage());
             }
         }
-
     }
 
-     synchronized void saveFile(String fileName) {
+    synchronized void saveFile(String fileName) {
         for (File file : files) {
             if (fileName.equals(file.getName())) {
             }
@@ -174,7 +155,8 @@ public class Server {
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                if (!fromClient.getText().equals("/files") && !fromClient.getText().equals("/loadfile")
+                if (fromClient != null && !fromClient.getText().equals("/files")
+                        && !fromClient.getText().equals("/loadfile")
                         && !fromClient.getText().equals("/savefile")) {
                     Message message = new Message("server: " + fromClient.getSender());
                     message.setText(fromClient.getSentAt() + " "
@@ -187,18 +169,18 @@ public class Server {
                 } else if (fromClient.getText().equals("/files")) {
                     showFiles();
                 } else if (fromClient.getText().equals("/loadfile")) {
-                    Message pathMessage;
-                  //  FileMessage fileMessage;
+                    //   Message pathMessage;
+                    FileMessage fileMessage;
                     try {
-                        pathMessage = connectionHandler.receive();
-                       // fileMessage = connectionHandler.receiveFileDescription();
+                        //   pathMessage = connectionHandler.receive();
+                        fileMessage = connectionHandler.receiveFileDescription();
                     } catch (IOException e) {
                         connectionHandlers.remove(connectionHandler);
                         return;
                     } catch (ClassNotFoundException e) {
                         throw new RuntimeException(e);
                     }
-                    loadFile(pathMessage.getText());
+                    loadFile(fileMessage);
                 } else if (fromClient.getText().equals("/savefile")) {
                     saveFile("fileName");
                 }
@@ -214,7 +196,8 @@ public class Server {
                     Message message = messages.take();
                     for (SendReceive handler : connectionHandlers) {
                         try {
-                            handler.send(message);
+                            if (handler != null)
+                                handler.send(message);
                         } catch (IOException e) {
                             connectionHandlers.remove(handler);
                         }
