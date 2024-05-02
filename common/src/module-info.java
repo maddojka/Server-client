@@ -1,3 +1,3 @@
 module common {
-    exports com.soroko.common.common;
+    exports com.soroko.common;
 }

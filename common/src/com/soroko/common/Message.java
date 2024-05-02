@@ -1,12 +1,14 @@
-package com.soroko.common.common;
+package com.soroko.common;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class Message implements Serializable {
-    String sender;
-    String text;
-    LocalDateTime sentAt;
+    private String sender;
+    private String text;
+    private String sentAt;
 
     public Message(String sender) {
         this.sender = sender;
@@ -28,11 +30,11 @@ public class Message implements Serializable {
         this.text = text;
     }
 
-    public LocalDateTime getSentAt() {
+    public String getSentAt() {
         return sentAt;
     }
 
-    public void setSentAt(LocalDateTime sentAt) {
+    public void setSentAt(String sentAt) {
         this.sentAt = sentAt;
     }
 }
