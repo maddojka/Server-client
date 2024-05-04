@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -49,7 +50,7 @@ public class Server {
         }
     }
 
-    public synchronized void loadFile(/*String pathname*/ FileMessage fileMessage) {
+    public synchronized void loadFile(FileMessage fileMessage) {
         randomName = (int) (Math.random() * 1000);
         char[] descriptionChars = fileMessage.getDescription().toCharArray();
         File fileSource = new File(fileMessage.getFilepath());
@@ -94,10 +95,25 @@ public class Server {
         }
     }
 
-    synchronized void saveFile(String fileName) {
-        for (File file : files) {
-            if (fileName.equals(file.getName())) {
+    synchronized void saveFile(FileMessage fileMessage) {
+        File fileSource =
+                new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
+        File fileDestination = new File(fileMessage.getFilepath() + fileMessage.getDescription());
+        String fileWasCreated;
+        try {
+            copy(fileSource, fileDestination);
+            if (fileDestination.isFile()) {
+                fileWasCreated = "Файл " + fileDestination.getName() + " был успешно сохранен с сервера";
+                Message fileWasCreatedMessage = new Message("server");
+                fileWasCreatedMessage.setText(fileWasCreated);
+                try {
+                    messages.put(fileWasCreatedMessage);
+                } catch (InterruptedException e) {
+                    System.out.println(e.getMessage());
+                }
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -166,13 +182,11 @@ public class Server {
                     } catch (InterruptedException e) {
                         System.out.println(e.getMessage());
                     }
-                } else if (fromClient.getText().equals("/files")) {
+                } else if (Objects.requireNonNull(fromClient).getText().equals("/files")) {
                     showFiles();
                 } else if (fromClient.getText().equals("/loadfile")) {
-                    //   Message pathMessage;
                     FileMessage fileMessage;
                     try {
-                        //   pathMessage = connectionHandler.receive();
                         fileMessage = connectionHandler.receiveFileDescription();
                     } catch (IOException e) {
                         connectionHandlers.remove(connectionHandler);
@@ -182,7 +196,17 @@ public class Server {
                     }
                     loadFile(fileMessage);
                 } else if (fromClient.getText().equals("/savefile")) {
-                    saveFile("fileName");
+                    showFiles();
+                    FileMessage fileMessage;
+                    try {
+                        fileMessage = connectionHandler.receiveFileDescription();
+                    } catch (IOException e) {
+                        connectionHandlers.remove(connectionHandler);
+                        return;
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                    saveFile(fileMessage);
                 }
             }
         }

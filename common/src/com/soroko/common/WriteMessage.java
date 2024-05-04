@@ -27,7 +27,7 @@ public class WriteMessage extends Thread {
             Message message = new Message(username);
             message.setText(text);
             try {
-                Message fromServer = null;
+                Message fromServer;
                 try {
                     fromServer = connectionHandler.receive();
                 } catch (ClassNotFoundException e) {
