@@ -30,6 +30,7 @@ public class Server {
     private int amountOfSymbols;
     private int randomName;
     ArrayList<File> files = new ArrayList<>();
+    ArrayList<FileMessage> fileMessages = new ArrayList<>();
 
     public Server(int port) {
         this.port = port;
@@ -39,10 +40,13 @@ public class Server {
 
     public synchronized void showFiles() {
         Message message = new Message("server");
-        String intro = "Список доступных файлов:" + "\n";
-        String fileNames = files.stream().map(File::getName).collect(Collectors.joining(", "));
-        if (files.isEmpty()) message.setText("Доступных файлов не обнаружено");
-        else message.setText(intro + fileNames);
+        String intro = "Список доступных файлов:";
+        String fileInformation = fileMessages.stream()
+                .map(FileMessage::toString).collect(Collectors.joining(", "));
+        if (files.isEmpty()) {
+            // message.setEmpty(true);
+            message.setText("Доступных файлов не обнаружено");
+        } else message.setText(intro + fileInformation);
         try {
             connectionHandler.send(message);
         } catch (IOException e) {
@@ -53,7 +57,7 @@ public class Server {
     public synchronized void loadFile(FileMessage fileMessage) {
         randomName = (int) (Math.random() * 1000);
         char[] descriptionChars = fileMessage.getDescription().toCharArray();
-        File fileSource = new File(fileMessage.getFilepath());
+        File fileSource = new File(fileMessage.getFilePath());
         String fileName = SERVER_STORAGE_LOCATION + fileSource.getName();
         String fileWasCreated;
         File fileDestination;
@@ -68,8 +72,11 @@ public class Server {
             if (fileMessage.getSize() <= fileSize && descriptionChars.length <= amountOfSymbols) {
                 try {
                     copy(fileSource, fileDestination);
-                    if (fileDestination.isFile())
+                    if (fileDestination.isFile()) {
                         files.add(fileDestination);
+                        fileMessage.setFilePath(fileDestination.getName());
+                        fileMessages.add(fileMessage);
+                    }
                     fileWasCreated = "Файл " + fileDestination.getName() + " был успешно загружен";
                     Message fileWasCreatedMessage = new Message("server");
                     fileWasCreatedMessage.setText(fileWasCreated);
@@ -88,8 +95,8 @@ public class Server {
             Message fileDoesNotExistMsg = new Message("server");
             fileDoesNotExistMsg.setText(fileDoesNotExist);
             try {
-                connectionHandler.send(fileDoesNotExistMsg);
-            } catch (IOException e) {
+                messages.put(fileDoesNotExistMsg);
+            } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
         }
@@ -98,12 +105,12 @@ public class Server {
     synchronized void saveFile(FileMessage fileMessage) {
         File fileSource =
                 new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
-        File fileDestination = new File(fileMessage.getFilepath() + fileMessage.getDescription());
+        File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
         String fileWasCreated;
         try {
             copy(fileSource, fileDestination);
             if (fileDestination.isFile()) {
-                fileWasCreated = "Файл " + fileDestination.getName() + " был успешно сохранен с сервера";
+                fileWasCreated = "Файл " + fileDestination.getName() + " был успешно сохранен";
                 Message fileWasCreatedMessage = new Message("server");
                 fileWasCreatedMessage.setText(fileWasCreated);
                 try {
@@ -113,7 +120,14 @@ public class Server {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            String fileWasNotCreated = "Неверное имя файла или файла нет в списке";
+            Message fileWasNotCreatedMsg = new Message("server");
+            fileWasNotCreatedMsg.setText(fileWasNotCreated);
+            try {
+                messages.put(fileWasNotCreatedMsg);
+            } catch (InterruptedException ex) {
+                System.out.println(ex.getMessage());
+            }
         }
     }
 

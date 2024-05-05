@@ -1,16 +1,17 @@
 package com.soroko.common;
 
 import java.io.Serializable;
+import java.nio.file.Paths;
 
 public class FileMessage implements Serializable {
     private String description;
     private int size;
-    private String filepath;
-    private boolean isEmpty;
+    private String filePath;
+
 
     public FileMessage(String description, String filepath) {
         this.description = description;
-        this.filepath = filepath;
+        this.filePath = filepath;
     }
 
     public FileMessage(String description, int size) {
@@ -18,12 +19,12 @@ public class FileMessage implements Serializable {
         this.size = size;
     }
 
-    public String getFilepath() {
-        return filepath;
+    public String getFilePath() {
+        return filePath;
     }
 
-    public void setFilepath(String filepath) {
-        this.filepath = filepath;
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 
     public String getDescription() {
@@ -34,11 +35,11 @@ public class FileMessage implements Serializable {
         return size;
     }
 
-    public void setEmpty(boolean empty) {
-        isEmpty = empty;
-    }
-
-    public boolean isEmpty() {
-        return isEmpty;
+    @Override
+    public String toString() {
+        String fileName = Paths.get(filePath).getFileName().toString();
+        return  "\n" + "название: " + fileName +
+                ", описание: " + description +
+                ", размер в мб: " + size;
     }
 }

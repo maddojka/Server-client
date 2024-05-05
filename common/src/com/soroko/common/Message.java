@@ -9,6 +9,7 @@ public class Message implements Serializable {
     private String sender;
     private String text;
     private String sentAt;
+    private boolean isEmpty;
 
     public Message(String sender) {
         this.sender = sender;
@@ -36,5 +37,13 @@ public class Message implements Serializable {
 
     public void setSentAt(String sentAt) {
         this.sentAt = sentAt;
+    }
+
+    public void setEmpty(boolean empty) {
+        isEmpty = empty;
+    }
+
+    public boolean isEmpty() {
+        return isEmpty;
     }
 }
