@@ -14,7 +14,6 @@ public class Client {
     private String username;
     private Scanner scanner;
     private SendReceive connectionHandler;
-    private boolean isEmpty;
 
     public Client(InetSocketAddress address) {
         this.address = address;
@@ -22,10 +21,12 @@ public class Client {
     }
 
     public void saveCommand() {
-        System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
-        String filepath = scanner.nextLine();
-        System.out.println("Введите название файла из списка доступных файлов:");
-        String description = scanner.nextLine();
+        String filepath = "";
+        String description = "";
+            System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
+            filepath = scanner.nextLine();
+            System.out.println("Введите название файла из списка доступных файлов:");
+            description = scanner.nextLine();
         FileMessage fileMessage = new FileMessage(description, filepath);
         fileMessage.setFilePath(filepath);
         try {
@@ -58,11 +59,13 @@ public class Client {
             while (true) {
                 if (isLoadCommand) {
                     loadCommand();
-                    isLoadCommand = false;
+                    //    isLoadCommand = false;
                 } else if (isSaveCommand) {
                     saveCommand();
-                    isSaveCommand = false;
-                }  else System.out.println("Введите текст сообщения");
+                    //   isSaveCommand = false;
+                } else System.out.println("Введите текст сообщения");
+                isLoadCommand = false;
+                isSaveCommand = false;
                 String text = scanner.nextLine();
                 if (text.equalsIgnoreCase("/loadfile")) isLoadCommand = true;
                 if (text.equalsIgnoreCase("/savefile")) isSaveCommand = true;
@@ -99,7 +102,6 @@ public class Client {
                     throw new RuntimeException(e);
                 }
                 System.out.println(message.getText());
-                if (message.isEmpty()) isEmpty = true;
             }
         }
     }

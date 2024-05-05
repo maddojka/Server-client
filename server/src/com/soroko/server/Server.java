@@ -8,7 +8,6 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -17,17 +16,18 @@ import java.util.stream.Collectors;
 
 
 public class Server {
-    public static final String SERVER_STORAGE_LOCATION = "C:\\Users\\yuriy\\IdeaProjects\\socketLesson\\server\\src\\com\\soroko\\server\\";
+    public static final String SERVER_STORAGE_LOCATION
+            = "C:\\Users\\yuriy\\IdeaProjects\\socketLesson\\server\\src\\com\\soroko\\server\\";
     private final int port;
     private final ArrayBlockingQueue<Message> messages = new ArrayBlockingQueue<>(1000, true);
     private final List<SendReceive> connectionHandlers = new CopyOnWriteArrayList<>();
+    private final List<FileMessage> fileMessages = new CopyOnWriteArrayList<>();
     Sender sender;
     ThreadForClient threadForClient;
     SendReceive connectionHandler;
-    private int fileSize;
-    private int amountOfSymbols;
-    private int randomName;
-    ArrayList<FileMessage> fileMessages = new ArrayList<>();
+    private final int fileSize;
+    private final int amountOfSymbols;
+
 
     public Server(int port) {
         this.port = port;
@@ -35,23 +35,27 @@ public class Server {
         amountOfSymbols = 200;
     }
 
-    public synchronized void showFiles() {
+   /* public synchronized void showFiles() {
         Message message = new Message("server");
         String intro = "Список доступных файлов:";
-        String fileInformation = fileMessages.stream().map(FileMessage::toString).collect(Collectors.joining(", "));
+        String fileInformation = fileMessages.stream()
+                .map(FileMessage::toString)
+                .collect(Collectors.joining(", "));
         if (fileMessages.isEmpty()) {
-            // message.setEmpty(true);
+            message.setEmpty(true);
             message.setText("Доступных файлов не обнаружено");
-        } else message.setText(intro + fileInformation);
+        } else {
+            message.setText(intro + fileInformation);
+        }
         try {
             connectionHandler.send(message);
         } catch (IOException e) {
             connectionHandler.close();
         }
-    }
+    }*/
 
-    public synchronized void loadFile(FileMessage fileMessage) {
-        randomName = (int) (Math.random() * 1000);
+    /*public synchronized void loadFile(FileMessage fileMessage) {
+        int randomName = (int) (Math.random() * 1000);
         char[] descriptionChars = fileMessage.getDescription().toCharArray();
         File fileSource = new File(fileMessage.getFilePath());
         String fileName = SERVER_STORAGE_LOCATION + fileSource.getName();
@@ -71,13 +75,13 @@ public class Server {
                     if (fileDestination.isFile()) {
                         fileMessage.setFilePath(fileDestination.getName());
                         fileMessages.add(fileMessage);
+                        message.setEmpty(false);
                     }
                     answer = "Файл " + fileDestination.getName() + " был успешно загружен";
                     message.setText(answer);
                     try {
                         messages.put(message);
                     } catch (InterruptedException e) {
-                        messages.remove(message);
                         System.out.println(e.getMessage());
                     }
                 } catch (IOException e) {
@@ -94,9 +98,9 @@ public class Server {
                 connectionHandler.close();
             }
         }
-    }
+    }*/
 
-    synchronized void saveFile(FileMessage fileMessage) {
+    /*synchronized void saveFile(FileMessage fileMessage) {
         File fileSource = new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
         File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
         String answer;
@@ -109,7 +113,8 @@ public class Server {
                 connectionHandler.send(message);
             }
         } catch (IOException e) {
-            answer = "Неверное имя файла или файла нет в списке";
+            answer = "Неверное имя файла или файла нет в списке, " +
+                    "либо файл с таким именем уже существует";
             message.setText(answer);
             try {
                 connectionHandler.send(message);
@@ -117,7 +122,20 @@ public class Server {
                 connectionHandler.close();
             }
         }
-    }
+    }*/
+
+    /*public FileMessage createFileMessage() {
+        FileMessage fileMessage;
+        try {
+            fileMessage = connectionHandler.receiveFileDescription();
+        } catch (IOException e) {
+            connectionHandlers.remove(connectionHandler);
+            return null;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return fileMessage;
+    }*/
 
     public void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -129,6 +147,7 @@ public class Server {
                     // SendReceive connectionHandler = new SendReceive(socket);
                     connectionHandler = new SendReceive(socket);
                     connectionHandlers.add(connectionHandler);
+                    System.out.println(connectionHandler);
                     threadForClient = new ThreadForClient(connectionHandler);
                     threadForClient.start();
                 } catch (Exception e) {
@@ -151,6 +170,108 @@ public class Server {
 
         public ThreadForClient(SendReceive connectionHandler) {
             this.connectionHandler = connectionHandler;
+        }
+
+        public synchronized void showFiles() {
+            Message message = new Message("server");
+            String intro = "Список доступных файлов:";
+            String fileInformation = fileMessages.stream()
+                    .map(FileMessage::toString)
+                    .collect(Collectors.joining(", "));
+            if (fileMessages.isEmpty()) {
+                message.setEmpty(true);
+                message.setText("Доступных файлов не обнаружено");
+            } else {
+                message.setText(intro + fileInformation);
+            }
+            try {
+                connectionHandler.send(message);
+            } catch (IOException e) {
+                connectionHandler.close();
+            }
+        }
+
+        public synchronized void loadFile(FileMessage fileMessage) {
+            int randomName = (int) (Math.random() * 1000);
+            char[] descriptionChars = fileMessage.getDescription().toCharArray();
+            File fileSource = new File(fileMessage.getFilePath());
+            String fileName = SERVER_STORAGE_LOCATION + fileSource.getName();
+            String answer;
+            File fileDestination;
+            Path path = Paths.get(fileName);
+            if (Files.exists(path)) {
+                fileDestination = new File((SERVER_STORAGE_LOCATION + randomName + fileSource.getName()));
+            } else {
+                fileDestination = new File(fileName);
+            }
+            Message message = new Message("server");
+            if (!fileSource.isDirectory() && fileSource.exists()) {
+                if (fileMessage.getSize() <= fileSize && descriptionChars.length <= amountOfSymbols) {
+                    try {
+                        copy(fileSource, fileDestination);
+                        if (fileDestination.isFile()) {
+                            fileMessage.setFilePath(fileDestination.getName());
+                            fileMessages.add(fileMessage);
+                            message.setEmpty(false);
+                        }
+                        answer = "Файл " + fileDestination.getName() + " был успешно загружен";
+                        message.setText(answer);
+                        try {
+                            messages.put(message);
+                        } catch (InterruptedException e) {
+                            System.out.println(e.getMessage());
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else {
+                answer = "Файл по указанному пути не найден"
+                        + " или содержит слишком большой объем информации";
+                message.setText(answer);
+                try {
+                    connectionHandler.send(message);
+                } catch (IOException e) {
+                    connectionHandler.close();
+                }
+            }
+        }
+
+        synchronized void saveFile(FileMessage fileMessage) {
+            File fileSource = new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
+            File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
+            String answer;
+            Message message = new Message("server");
+            try {
+                copy(fileSource, fileDestination);
+                if (fileDestination.isFile()) {
+                    answer = "Файл " + fileDestination.getName() + " был успешно сохранен";
+                    message.setText(answer);
+                    connectionHandler.send(message);
+                }
+            } catch (IOException e) {
+                answer = "Неверное имя файла или файла нет в списке, " +
+                        "либо файл с таким именем уже существует";
+                message.setText(answer);
+                try {
+                    connectionHandler.send(message);
+                } catch (IOException ex) {
+                    connectionHandler.close();
+                }
+            }
+        }
+
+        public FileMessage createFileMessage() {
+            FileMessage fileMessage;
+            try {
+                fileMessage = connectionHandler.receiveFileDescription();
+            } catch (IOException e) {
+                connectionHandlers.remove(connectionHandler);
+                return null;
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            return fileMessage;
         }
 
         public SendReceive getConnectionHandler() {
@@ -186,27 +307,11 @@ public class Server {
                 } else if (Objects.requireNonNull(fromClient).getText().equals("/files")) {
                     showFiles();
                 } else if (fromClient.getText().equals("/loadfile")) {
-                    FileMessage fileMessage;
-                    try {
-                        fileMessage = connectionHandler.receiveFileDescription();
-                    } catch (IOException e) {
-                        connectionHandlers.remove(connectionHandler);
-                        return;
-                    } catch (ClassNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
+                    FileMessage fileMessage = createFileMessage();
                     loadFile(fileMessage);
                 } else if (fromClient.getText().equals("/savefile")) {
                     showFiles();
-                    FileMessage fileMessage;
-                    try {
-                        fileMessage = connectionHandler.receiveFileDescription();
-                    } catch (IOException e) {
-                        connectionHandlers.remove(connectionHandler);
-                        return;
-                    } catch (ClassNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
+                    FileMessage fileMessage = createFileMessage();
                     saveFile(fileMessage);
                 }
             }
@@ -216,7 +321,7 @@ public class Server {
     private class Sender extends Thread {
         @Override
         public void run() {
-            while (!Thread.currentThread().isInterrupted()) { // true
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     Message message = messages.take();
                     for (SendReceive handler : connectionHandlers) {
