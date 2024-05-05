@@ -22,120 +22,17 @@ public class Server {
     private final ArrayBlockingQueue<Message> messages = new ArrayBlockingQueue<>(1000, true);
     private final List<SendReceive> connectionHandlers = new CopyOnWriteArrayList<>();
     private final List<FileMessage> fileMessages = new CopyOnWriteArrayList<>();
-    Sender sender;
-    ThreadForClient threadForClient;
-    SendReceive connectionHandler;
+    private Sender sender;
+    private ThreadForClient threadForClient;
+    private SendReceive connectionHandler;
     private final int fileSize;
     private final int amountOfSymbols;
-
 
     public Server(int port) {
         this.port = port;
         fileSize = 10;
         amountOfSymbols = 200;
     }
-
-   /* public synchronized void showFiles() {
-        Message message = new Message("server");
-        String intro = "Список доступных файлов:";
-        String fileInformation = fileMessages.stream()
-                .map(FileMessage::toString)
-                .collect(Collectors.joining(", "));
-        if (fileMessages.isEmpty()) {
-            message.setEmpty(true);
-            message.setText("Доступных файлов не обнаружено");
-        } else {
-            message.setText(intro + fileInformation);
-        }
-        try {
-            connectionHandler.send(message);
-        } catch (IOException e) {
-            connectionHandler.close();
-        }
-    }*/
-
-    /*public synchronized void loadFile(FileMessage fileMessage) {
-        int randomName = (int) (Math.random() * 1000);
-        char[] descriptionChars = fileMessage.getDescription().toCharArray();
-        File fileSource = new File(fileMessage.getFilePath());
-        String fileName = SERVER_STORAGE_LOCATION + fileSource.getName();
-        String answer;
-        File fileDestination;
-        Path path = Paths.get(fileName);
-        if (Files.exists(path)) {
-            fileDestination = new File((SERVER_STORAGE_LOCATION + randomName + fileSource.getName()));
-        } else {
-            fileDestination = new File(fileName);
-        }
-        Message message = new Message("server");
-        if (!fileSource.isDirectory() && fileSource.exists()) {
-            if (fileMessage.getSize() <= fileSize && descriptionChars.length <= amountOfSymbols) {
-                try {
-                    copy(fileSource, fileDestination);
-                    if (fileDestination.isFile()) {
-                        fileMessage.setFilePath(fileDestination.getName());
-                        fileMessages.add(fileMessage);
-                        message.setEmpty(false);
-                    }
-                    answer = "Файл " + fileDestination.getName() + " был успешно загружен";
-                    message.setText(answer);
-                    try {
-                        messages.put(message);
-                    } catch (InterruptedException e) {
-                        System.out.println(e.getMessage());
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        } else {
-            answer = "Файл по указанному пути не найден"
-                    + " или содержит слишком большой объем информации";
-            message.setText(answer);
-            try {
-                connectionHandler.send(message);
-            } catch (IOException e) {
-                connectionHandler.close();
-            }
-        }
-    }*/
-
-    /*synchronized void saveFile(FileMessage fileMessage) {
-        File fileSource = new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
-        File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
-        String answer;
-        Message message = new Message("server");
-        try {
-            copy(fileSource, fileDestination);
-            if (fileDestination.isFile()) {
-                answer = "Файл " + fileDestination.getName() + " был успешно сохранен";
-                message.setText(answer);
-                connectionHandler.send(message);
-            }
-        } catch (IOException e) {
-            answer = "Неверное имя файла или файла нет в списке, " +
-                    "либо файл с таким именем уже существует";
-            message.setText(answer);
-            try {
-                connectionHandler.send(message);
-            } catch (IOException ex) {
-                connectionHandler.close();
-            }
-        }
-    }*/
-
-    /*public FileMessage createFileMessage() {
-        FileMessage fileMessage;
-        try {
-            fileMessage = connectionHandler.receiveFileDescription();
-        } catch (IOException e) {
-            connectionHandlers.remove(connectionHandler);
-            return null;
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        return fileMessage;
-    }*/
 
     public void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
