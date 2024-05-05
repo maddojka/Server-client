@@ -27,7 +27,6 @@ public class Server {
     private int fileSize;
     private int amountOfSymbols;
     private int randomName;
-    ArrayList<File> files = new ArrayList<>();
     ArrayList<FileMessage> fileMessages = new ArrayList<>();
 
     public Server(int port) {
@@ -40,7 +39,7 @@ public class Server {
         Message message = new Message("server");
         String intro = "Список доступных файлов:";
         String fileInformation = fileMessages.stream().map(FileMessage::toString).collect(Collectors.joining(", "));
-        if (files.isEmpty()) {
+        if (fileMessages.isEmpty()) {
             // message.setEmpty(true);
             message.setText("Доступных файлов не обнаружено");
         } else message.setText(intro + fileInformation);
@@ -56,7 +55,7 @@ public class Server {
         char[] descriptionChars = fileMessage.getDescription().toCharArray();
         File fileSource = new File(fileMessage.getFilePath());
         String fileName = SERVER_STORAGE_LOCATION + fileSource.getName();
-        String fileWasCreated;
+        String answer;
         File fileDestination;
         Path path = Paths.get(fileName);
         if (Files.exists(path)) {
@@ -64,21 +63,21 @@ public class Server {
         } else {
             fileDestination = new File(fileName);
         }
+        Message message = new Message("server");
         if (!fileSource.isDirectory() && fileSource.exists()) {
             if (fileMessage.getSize() <= fileSize && descriptionChars.length <= amountOfSymbols) {
                 try {
                     copy(fileSource, fileDestination);
                     if (fileDestination.isFile()) {
-                        files.add(fileDestination);
                         fileMessage.setFilePath(fileDestination.getName());
                         fileMessages.add(fileMessage);
                     }
-                    fileWasCreated = "Файл " + fileDestination.getName() + " был успешно загружен";
-                    Message fileWasCreatedMessage = new Message("server");
-                    fileWasCreatedMessage.setText(fileWasCreated);
+                    answer = "Файл " + fileDestination.getName() + " был успешно загружен";
+                    message.setText(answer);
                     try {
-                        messages.put(fileWasCreatedMessage);
+                        messages.put(message);
                     } catch (InterruptedException e) {
+                        messages.remove(message);
                         System.out.println(e.getMessage());
                     }
                 } catch (IOException e) {
@@ -86,13 +85,13 @@ public class Server {
                 }
             }
         } else {
-            String fileDoesNotExist = "Файл по указанному пути не найден" + " или содержит слишком большой объем информации";
-            Message fileDoesNotExistMsg = new Message("server");
-            fileDoesNotExistMsg.setText(fileDoesNotExist);
+            answer = "Файл по указанному пути не найден"
+                    + " или содержит слишком большой объем информации";
+            message.setText(answer);
             try {
-                messages.put(fileDoesNotExistMsg);
-            } catch (InterruptedException e) {
-                System.out.println(e.getMessage());
+                connectionHandler.send(message);
+            } catch (IOException e) {
+                connectionHandler.close();
             }
         }
     }
@@ -100,27 +99,22 @@ public class Server {
     synchronized void saveFile(FileMessage fileMessage) {
         File fileSource = new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
         File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
-        String fileWasCreated;
+        String answer;
+        Message message = new Message("server");
         try {
             copy(fileSource, fileDestination);
             if (fileDestination.isFile()) {
-                fileWasCreated = "Файл " + fileDestination.getName() + " был успешно сохранен";
-                Message fileWasCreatedMessage = new Message("server");
-                fileWasCreatedMessage.setText(fileWasCreated);
-                try {
-                    messages.put(fileWasCreatedMessage);
-                } catch (InterruptedException e) {
-                    System.out.println(e.getMessage());
-                }
+                answer = "Файл " + fileDestination.getName() + " был успешно сохранен";
+                message.setText(answer);
+                connectionHandler.send(message);
             }
         } catch (IOException e) {
-            String fileWasNotCreated = "Неверное имя файла или файла нет в списке";
-            Message fileWasNotCreatedMsg = new Message("server");
-            fileWasNotCreatedMsg.setText(fileWasNotCreated);
+            answer = "Неверное имя файла или файла нет в списке";
+            message.setText(answer);
             try {
-                messages.put(fileWasNotCreatedMsg);
-            } catch (InterruptedException ex) {
-                System.out.println(ex.getMessage());
+                connectionHandler.send(message);
+            } catch (IOException ex) {
+                connectionHandler.close();
             }
         }
     }
@@ -179,7 +173,9 @@ public class Server {
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                if (fromClient != null && !fromClient.getText().equals("/files") && !fromClient.getText().equals("/loadfile") && !fromClient.getText().equals("/savefile")) {
+                if (fromClient != null && !fromClient.getText().equals("/files") &&
+                        !fromClient.getText().equals("/loadfile") && !fromClient.getText().equals("/savefile") &&
+                        !fromClient.getText().isEmpty()) {
                     Message message = new Message("server: " + fromClient.getSender());
                     message.setText(fromClient.getSentAt() + " " + fromClient.getSender() + ": " + fromClient.getText());
                     try {

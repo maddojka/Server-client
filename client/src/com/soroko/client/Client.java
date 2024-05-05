@@ -62,7 +62,7 @@ public class Client {
                 } else if (isSaveCommand) {
                     saveCommand();
                     isSaveCommand = false;
-                } else System.out.println("Введите текст сообщения");
+                }  else System.out.println("Введите текст сообщения");
                 String text = scanner.nextLine();
                 if (text.equalsIgnoreCase("/loadfile")) isLoadCommand = true;
                 if (text.equalsIgnoreCase("/savefile")) isSaveCommand = true;
