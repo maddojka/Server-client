@@ -20,7 +20,7 @@ public class WriteMessage extends Thread {
         System.out.println("Введите имя");
         username = scanner.nextLine();
 
-        while(true) {
+        while (true) {
             System.out.println("Введите текст сообщения");
             String text = scanner.nextLine();
             if (text.equals("/exit")) break;

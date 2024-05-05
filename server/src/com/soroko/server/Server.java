@@ -17,11 +17,9 @@ import java.util.stream.Collectors;
 
 
 public class Server {
-    public static final String SERVER_STORAGE_LOCATION =
-            "C:\\Users\\yuriy\\IdeaProjects\\socketLesson\\server\\src\\com\\soroko\\server\\";
+    public static final String SERVER_STORAGE_LOCATION = "C:\\Users\\yuriy\\IdeaProjects\\socketLesson\\server\\src\\com\\soroko\\server\\";
     private final int port;
-    private final ArrayBlockingQueue<Message> messages =
-            new ArrayBlockingQueue<>(1000, true);
+    private final ArrayBlockingQueue<Message> messages = new ArrayBlockingQueue<>(1000, true);
     private final List<SendReceive> connectionHandlers = new CopyOnWriteArrayList<>();
     Sender sender;
     ThreadForClient threadForClient;
@@ -41,8 +39,7 @@ public class Server {
     public synchronized void showFiles() {
         Message message = new Message("server");
         String intro = "Список доступных файлов:";
-        String fileInformation = fileMessages.stream()
-                .map(FileMessage::toString).collect(Collectors.joining(", "));
+        String fileInformation = fileMessages.stream().map(FileMessage::toString).collect(Collectors.joining(", "));
         if (files.isEmpty()) {
             // message.setEmpty(true);
             message.setText("Доступных файлов не обнаружено");
@@ -63,8 +60,7 @@ public class Server {
         File fileDestination;
         Path path = Paths.get(fileName);
         if (Files.exists(path)) {
-            fileDestination =
-                    new File((SERVER_STORAGE_LOCATION + randomName + fileSource.getName()));
+            fileDestination = new File((SERVER_STORAGE_LOCATION + randomName + fileSource.getName()));
         } else {
             fileDestination = new File(fileName);
         }
@@ -90,8 +86,7 @@ public class Server {
                 }
             }
         } else {
-            String fileDoesNotExist = "Файл по указанному пути не найден" +
-                    " или содержит слишком большой объем информации";
+            String fileDoesNotExist = "Файл по указанному пути не найден" + " или содержит слишком большой объем информации";
             Message fileDoesNotExistMsg = new Message("server");
             fileDoesNotExistMsg.setText(fileDoesNotExist);
             try {
@@ -103,8 +98,7 @@ public class Server {
     }
 
     synchronized void saveFile(FileMessage fileMessage) {
-        File fileSource =
-                new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
+        File fileSource = new File((SERVER_STORAGE_LOCATION + fileMessage.getDescription()));
         File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
         String fileWasCreated;
         try {
@@ -185,12 +179,9 @@ public class Server {
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                if (fromClient != null && !fromClient.getText().equals("/files")
-                        && !fromClient.getText().equals("/loadfile")
-                        && !fromClient.getText().equals("/savefile")) {
+                if (fromClient != null && !fromClient.getText().equals("/files") && !fromClient.getText().equals("/loadfile") && !fromClient.getText().equals("/savefile")) {
                     Message message = new Message("server: " + fromClient.getSender());
-                    message.setText(fromClient.getSentAt() + " "
-                            + fromClient.getSender() + ": " + fromClient.getText());
+                    message.setText(fromClient.getSentAt() + " " + fromClient.getSender() + ": " + fromClient.getText());
                     try {
                         messages.put(message);
                     } catch (InterruptedException e) {
@@ -234,8 +225,7 @@ public class Server {
                     Message message = messages.take();
                     for (SendReceive handler : connectionHandlers) {
                         try {
-                            if (handler != null)
-                                handler.send(message);
+                            if (handler != null) handler.send(message);
                         } catch (IOException e) {
                             connectionHandlers.remove(handler);
                         }

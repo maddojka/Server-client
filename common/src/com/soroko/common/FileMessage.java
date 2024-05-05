@@ -38,7 +38,7 @@ public class FileMessage implements Serializable {
     @Override
     public String toString() {
         String fileName = Paths.get(filePath).getFileName().toString();
-        return  "\n" + "название: " + fileName +
+        return "\n" + "название: " + fileName +
                 ", описание: " + description +
                 ", размер в мб: " + size;
     }

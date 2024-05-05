@@ -13,7 +13,6 @@ public class SendReceive implements AutoCloseable {
     private Socket socket;
 
 
-
     public SendReceive(Socket socket) throws IOException {
         this.socket = Objects.requireNonNull(socket);
         outputStream = new ObjectOutputStream(socket.getOutputStream());
