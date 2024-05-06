@@ -11,6 +11,7 @@ public class SendReceive implements AutoCloseable {
     private ObjectOutputStream outputStream;
     private ObjectInputStream inputStream;
     private Socket socket;
+    private int id;
 
 
     public SendReceive(Socket socket) throws IOException {
@@ -19,6 +20,13 @@ public class SendReceive implements AutoCloseable {
         inputStream = new ObjectInputStream(socket.getInputStream());
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public void send(Message message) throws IOException {
         DateTimeFormatter formatTime = DateTimeFormatter.ofPattern("HH:mm:ss");

@@ -22,11 +22,9 @@ public class Server {
     private final ArrayBlockingQueue<Message> messages = new ArrayBlockingQueue<>(1000, true);
     private final List<SendReceive> connectionHandlers = new CopyOnWriteArrayList<>();
     private final List<FileMessage> fileMessages = new CopyOnWriteArrayList<>();
-    private Sender sender;
-    private ThreadForClient threadForClient;
-    private SendReceive connectionHandler;
     private final int fileSize;
     private final int amountOfSymbols;
+    private int count = 0;
 
     public Server(int port) {
         this.port = port;
@@ -36,17 +34,15 @@ public class Server {
 
     public void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            sender = new Sender();
-            sender.start();
+            new Sender().start();
             while (true) {
                 try {
                     Socket socket = serverSocket.accept();
-                    // SendReceive connectionHandler = new SendReceive(socket);
-                    connectionHandler = new SendReceive(socket);
+                    SendReceive connectionHandler = new SendReceive(socket);
+                    connectionHandler.setId(++count);
+                    System.out.println(connectionHandler.getId());
                     connectionHandlers.add(connectionHandler);
-                    System.out.println(connectionHandler);
-                    threadForClient = new ThreadForClient(connectionHandler);
-                    threadForClient.start();
+                    new ThreadForClient(connectionHandler).start();
                 } catch (Exception e) {
                     System.out.println("Проблема с установкой нового соединения");
                 }
@@ -63,7 +59,7 @@ public class Server {
 
     private class ThreadForClient extends Thread {
         private final SendReceive connectionHandler;
-        Message fromClient;
+        private Message fromClient;
 
         public ThreadForClient(SendReceive connectionHandler) {
             this.connectionHandler = connectionHandler;
@@ -76,8 +72,7 @@ public class Server {
                     .map(FileMessage::toString)
                     .collect(Collectors.joining(", "));
             if (fileMessages.isEmpty()) {
-                message.setEmpty(true);
-                message.setText("Доступных файлов не обнаружено");
+                message.setText("Доступных для скачивания файлов не обнаружено");
             } else {
                 message.setText(intro + fileInformation);
             }
@@ -109,7 +104,6 @@ public class Server {
                         if (fileDestination.isFile()) {
                             fileMessage.setFilePath(fileDestination.getName());
                             fileMessages.add(fileMessage);
-                            message.setEmpty(false);
                         }
                         answer = "Файл " + fileDestination.getName() + " был успешно загружен";
                         message.setText(answer);
@@ -171,13 +165,6 @@ public class Server {
             return fileMessage;
         }
 
-        public SendReceive getConnectionHandler() {
-            return connectionHandler;
-        }
-
-        public Message getFromClient() {
-            return fromClient;
-        }
 
         @Override
         public void run() {
@@ -205,17 +192,23 @@ public class Server {
                     showFiles();
                 } else if (fromClient.getText().equals("/loadfile")) {
                     FileMessage fileMessage = createFileMessage();
-                    loadFile(fileMessage);
+                    loadFile(Objects.requireNonNull(fileMessage));
                 } else if (fromClient.getText().equals("/savefile")) {
-                    showFiles();
-                    FileMessage fileMessage = createFileMessage();
-                    saveFile(fileMessage);
+                    if (!fileMessages.isEmpty()) {
+                        showFiles();
+                    }
+                        FileMessage fileMessage = createFileMessage();
+                        fileMessage.setFilesAreEmpty(false);
+                        saveFile(Objects.requireNonNull(fileMessage));
+
                 }
             }
         }
     }
 
     private class Sender extends Thread {
+        private ThreadForClient threadForClient;
+
         @Override
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
@@ -223,7 +216,8 @@ public class Server {
                     Message message = messages.take();
                     for (SendReceive handler : connectionHandlers) {
                         try {
-                            if (handler != null) handler.send(message);
+                            if (handler != null)
+                                handler.send(message);
                         } catch (IOException e) {
                             connectionHandlers.remove(handler);
                         }

@@ -1,15 +1,11 @@
 package com.soroko.common;
 
 import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 public class Message implements Serializable {
     private String sender;
     private String text;
     private String sentAt;
-    private boolean isEmpty;
 
     public Message(String sender) {
         this.sender = sender;
@@ -17,10 +13,6 @@ public class Message implements Serializable {
 
     public String getSender() {
         return sender;
-    }
-
-    public void setSender(String sender) {
-        this.sender = sender;
     }
 
     public String getText() {
@@ -39,11 +31,4 @@ public class Message implements Serializable {
         this.sentAt = sentAt;
     }
 
-    public void setEmpty(boolean empty) {
-        isEmpty = empty;
-    }
-
-    public boolean isEmpty() {
-        return isEmpty;
-    }
 }

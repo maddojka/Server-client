@@ -7,6 +7,7 @@ public class FileMessage implements Serializable {
     private String description;
     private int size;
     private String filePath;
+    private boolean FilesAreEmpty;
 
 
     public FileMessage(String description, String filepath) {
@@ -33,6 +34,14 @@ public class FileMessage implements Serializable {
 
     public int getSize() {
         return size;
+    }
+
+    public boolean isFilesAreEmpty() {
+        return FilesAreEmpty;
+    }
+
+    public void setFilesAreEmpty(boolean filesAreEmpty) {
+        FilesAreEmpty = filesAreEmpty;
     }
 
     @Override

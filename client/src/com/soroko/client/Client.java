@@ -21,12 +21,10 @@ public class Client {
     }
 
     public void saveCommand() {
-        String filepath = "";
-        String description = "";
-            System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
-            filepath = scanner.nextLine();
-            System.out.println("Введите название файла из списка доступных файлов:");
-            description = scanner.nextLine();
+        System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
+        String filepath = scanner.nextLine();
+        System.out.println("Введите название файла из списка доступных файлов:");
+        String description = scanner.nextLine();
         FileMessage fileMessage = new FileMessage(description, filepath);
         fileMessage.setFilePath(filepath);
         try {
@@ -59,10 +57,8 @@ public class Client {
             while (true) {
                 if (isLoadCommand) {
                     loadCommand();
-                    //    isLoadCommand = false;
                 } else if (isSaveCommand) {
                     saveCommand();
-                    //   isSaveCommand = false;
                 } else System.out.println("Введите текст сообщения");
                 isLoadCommand = false;
                 isSaveCommand = false;
