@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -19,12 +18,12 @@ public class Server {
     public static final String SERVER_STORAGE_LOCATION
             = "C:\\Users\\yuriy\\IdeaProjects\\socketLesson\\server\\src\\com\\soroko\\server\\";
     private final int port;
-    private final ArrayBlockingQueue<Message> messages = new ArrayBlockingQueue<>(1000, true);
+    private final List<Message> messages = new CopyOnWriteArrayList<>();
     private final List<SendReceive> connectionHandlers = new CopyOnWriteArrayList<>();
+    private final List<ThreadForClient> threadForClients = new CopyOnWriteArrayList<>();
     private final List<FileMessage> fileMessages = new CopyOnWriteArrayList<>();
     private final int fileSize;
     private final int amountOfSymbols;
-    private int count = 0;
 
     public Server(int port) {
         this.port = port;
@@ -34,15 +33,14 @@ public class Server {
 
     public void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            new Sender().start();
             while (true) {
                 try {
                     Socket socket = serverSocket.accept();
                     SendReceive connectionHandler = new SendReceive(socket);
-                    connectionHandler.setId(++count);
-                    System.out.println(connectionHandler.getId());
                     connectionHandlers.add(connectionHandler);
-                    new ThreadForClient(connectionHandler).start();
+                    ThreadForClient threadForClient = new ThreadForClient(connectionHandler);
+                    threadForClient.start();
+                    threadForClients.add(threadForClient);
                 } catch (Exception e) {
                     System.out.println("Проблема с установкой нового соединения");
                 }
@@ -53,16 +51,21 @@ public class Server {
         }
     }
 
-    public static void copy(File source, File dest) throws IOException {
-        Files.copy(source.toPath(), dest.toPath());
+    public static void copy(File source, File destination) throws IOException {
+        Files.copy(source.toPath(), destination.toPath());
     }
 
     private class ThreadForClient extends Thread {
-        private final SendReceive connectionHandler;
-        private Message fromClient;
+        final SendReceive connectionHandler;
+        private boolean selfMessageIsActive;
+        private boolean loadFileFlag;
 
         public ThreadForClient(SendReceive connectionHandler) {
             this.connectionHandler = connectionHandler;
+        }
+
+        public SendReceive getConnectionHandler() {
+            return connectionHandler;
         }
 
         public synchronized void showFiles() {
@@ -109,11 +112,8 @@ public class Server {
                         }
                         answer = "Файл " + fileDestination.getName() + " был успешно загружен";
                         message.setText(answer);
-                        try {
-                            messages.put(message);
-                        } catch (InterruptedException e) {
-                            System.out.println(e.getMessage());
-                        }
+                        loadFileFlag = true;
+                        messages.add(message);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -168,11 +168,10 @@ public class Server {
             return fileMessage;
         }
 
-
         @Override
         public void run() {
             while (true) {
-                fromClient = null;
+                Message fromClient;
                 try {
                     fromClient = connectionHandler.receive();
                 } catch (IOException e) {
@@ -186,46 +185,34 @@ public class Server {
                         !fromClient.getText().isEmpty()) {
                     Message message = new Message("server: " + fromClient.getSender());
                     message.setText(fromClient.getSentAt() + " " + fromClient.getSender() + ": " + fromClient.getText());
-                    try {
-                        messages.put(message);
-                    } catch (InterruptedException e) {
-                        System.out.println(e.getMessage());
-                    }
-                } else if (fromClient.getText().equals("/files")) {
+                    messages.add(message);
+                } else if (Objects.requireNonNull(fromClient).getText().equals("/files")) {
+                    selfMessageIsActive = true;
                     showFiles();
                 } else if (fromClient.getText().equals("/loadfile")) {
+                    selfMessageIsActive = true;
                     FileMessage fileMessage = createFileMessage();
                     loadFile(Objects.requireNonNull(fileMessage));
                 } else if (fromClient.getText().equals("/savefile")) {
-                        showFiles();
-                        FileMessage fileMessage = createFileMessage();
-                        saveFile(Objects.requireNonNull(fileMessage));
+                    selfMessageIsActive = true;
+                    showFiles();
+                    FileMessage fileMessage = createFileMessage();
+                    saveFile(Objects.requireNonNull(fileMessage));
                 }
-            }
-        }
-    }
-
-    private class Sender extends Thread {
-        private ThreadForClient threadForClient;
-
-        @Override
-        public void run() {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    Message message = messages.take();
-                    for (SendReceive handler : connectionHandlers) {
-                        try {
-                            if (handler != null)
-                                handler.send(message);
-                        } catch (IOException e) {
-                            connectionHandlers.remove(handler);
+                Message message = null;
+                if (!messages.isEmpty()) message = messages.getLast();
+                for (SendReceive handler : connectionHandlers) {
+                    try {
+                        if ((handler != this.connectionHandler && !selfMessageIsActive) || loadFileFlag) {
+                            handler.send(Objects.requireNonNull(message));
                         }
-                    }
 
-                } catch (InterruptedException e) {
-                    System.out.println(e.getMessage());
-                    Thread.currentThread().interrupt();
+                    } catch (IOException e) {
+                        connectionHandlers.remove(handler);
+                    }
                 }
+                selfMessageIsActive = false;
+                loadFileFlag = false;
             }
         }
     }

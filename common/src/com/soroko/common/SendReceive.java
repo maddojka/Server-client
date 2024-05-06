@@ -11,21 +11,11 @@ public class SendReceive implements AutoCloseable {
     private ObjectOutputStream outputStream;
     private ObjectInputStream inputStream;
     private Socket socket;
-    private int id;
-
 
     public SendReceive(Socket socket) throws IOException {
         this.socket = Objects.requireNonNull(socket);
         outputStream = new ObjectOutputStream(socket.getOutputStream());
         inputStream = new ObjectInputStream(socket.getInputStream());
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public void send(Message message) throws IOException {
