@@ -6,6 +6,7 @@ public class Message implements Serializable {
     private String sender;
     private String text;
     private String sentAt;
+    private boolean FilesAreEmpty;
 
     public Message(String sender) {
         this.sender = sender;
@@ -31,4 +32,11 @@ public class Message implements Serializable {
         this.sentAt = sentAt;
     }
 
+    public boolean getFilesAreEmpty() {
+        return FilesAreEmpty;
+    }
+
+    public void setFilesAreEmpty(boolean filesAreEmpty) {
+        FilesAreEmpty = filesAreEmpty;
+    }
 }

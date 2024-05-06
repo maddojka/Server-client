@@ -72,6 +72,7 @@ public class Server {
                     .map(FileMessage::toString)
                     .collect(Collectors.joining(", "));
             if (fileMessages.isEmpty()) {
+                message.setFilesAreEmpty(true);
                 message.setText("Доступных для скачивания файлов не обнаружено");
             } else {
                 message.setText(intro + fileInformation);
@@ -104,6 +105,7 @@ public class Server {
                         if (fileDestination.isFile()) {
                             fileMessage.setFilePath(fileDestination.getName());
                             fileMessages.add(fileMessage);
+                            message.setFilesAreEmpty(false);
                         }
                         answer = "Файл " + fileDestination.getName() + " был успешно загружен";
                         message.setText(answer);
@@ -133,6 +135,7 @@ public class Server {
             File fileDestination = new File(fileMessage.getFilePath() + fileMessage.getDescription());
             String answer;
             Message message = new Message("server");
+            if (fileMessages.isEmpty()) message.setFilesAreEmpty(true);
             try {
                 copy(fileSource, fileDestination);
                 if (fileDestination.isFile()) {
@@ -188,19 +191,15 @@ public class Server {
                     } catch (InterruptedException e) {
                         System.out.println(e.getMessage());
                     }
-                } else if (Objects.requireNonNull(fromClient).getText().equals("/files")) {
+                } else if (fromClient.getText().equals("/files")) {
                     showFiles();
                 } else if (fromClient.getText().equals("/loadfile")) {
                     FileMessage fileMessage = createFileMessage();
                     loadFile(Objects.requireNonNull(fileMessage));
                 } else if (fromClient.getText().equals("/savefile")) {
-                    if (!fileMessages.isEmpty()) {
                         showFiles();
-                    }
                         FileMessage fileMessage = createFileMessage();
-                        fileMessage.setFilesAreEmpty(false);
                         saveFile(Objects.requireNonNull(fileMessage));
-
                 }
             }
         }

@@ -14,17 +14,22 @@ public class Client {
     private String username;
     private Scanner scanner;
     private SendReceive connectionHandler;
+    private boolean FilesAreEmpty;
 
     public Client(InetSocketAddress address) {
         this.address = address;
         scanner = new Scanner(System.in);
     }
 
-    public void saveCommand() {
-        System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
-        String filepath = scanner.nextLine();
-        System.out.println("Введите название файла из списка доступных файлов:");
-        String description = scanner.nextLine();
+    public void saveCommand() throws InterruptedException {
+        String filepath = "";
+        String description = "";
+        if (!FilesAreEmpty) {
+            System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
+            filepath = scanner.nextLine();
+            System.out.println("Введите название файла из списка доступных файлов:");
+            description = scanner.nextLine();
+        }
         FileMessage fileMessage = new FileMessage(description, filepath);
         fileMessage.setFilePath(filepath);
         try {
@@ -58,7 +63,11 @@ public class Client {
                 if (isLoadCommand) {
                     loadCommand();
                 } else if (isSaveCommand) {
-                    saveCommand();
+                    try {
+                        saveCommand();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 } else System.out.println("Введите текст сообщения");
                 isLoadCommand = false;
                 isSaveCommand = false;
@@ -87,6 +96,7 @@ public class Client {
                 Message message;
                 try {
                     message = connectionHandler.receive();
+                    FilesAreEmpty = message.getFilesAreEmpty();
                     if (message.getText().equalsIgnoreCase("/exit")) {
                         connectionHandler.close();
                         break;
