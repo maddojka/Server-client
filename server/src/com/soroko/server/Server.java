@@ -64,10 +64,6 @@ public class Server {
             this.connectionHandler = connectionHandler;
         }
 
-        public SendReceive getConnectionHandler() {
-            return connectionHandler;
-        }
-
         public synchronized void showFiles() {
             Message message = new Message("server");
             String intro = "Список доступных файлов:";
@@ -113,6 +109,7 @@ public class Server {
                         answer = "Файл " + fileDestination.getName() + " был успешно загружен";
                         message.setText(answer);
                         loadFileFlag = true;
+                        selfMessageIsActive = true;
                         messages.add(message);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
@@ -186,6 +183,7 @@ public class Server {
                     Message message = new Message("server: " + fromClient.getSender());
                     message.setText(fromClient.getSentAt() + " " + fromClient.getSender() + ": " + fromClient.getText());
                     messages.add(message);
+                    System.out.println(messages);
                 } else if (Objects.requireNonNull(fromClient).getText().equals("/files")) {
                     selfMessageIsActive = true;
                     showFiles();
@@ -203,10 +201,10 @@ public class Server {
                 if (!messages.isEmpty()) message = messages.getLast();
                 for (SendReceive handler : connectionHandlers) {
                     try {
-                        if ((handler != this.connectionHandler && !selfMessageIsActive) || loadFileFlag) {
+                        if ((handler != this.connectionHandler && !selfMessageIsActive) ||
+                                (handler == this.connectionHandler && this.loadFileFlag)) {
                             handler.send(Objects.requireNonNull(message));
                         }
-
                     } catch (IOException e) {
                         connectionHandlers.remove(handler);
                     }

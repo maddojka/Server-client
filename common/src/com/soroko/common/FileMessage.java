@@ -9,7 +9,6 @@ public class FileMessage implements Serializable {
     private String filePath;
 
 
-
     public FileMessage(String description, String filepath) {
         this.description = description;
         this.filePath = filepath;
