@@ -56,7 +56,7 @@ public class Server {
     }
 
     private class ThreadForClient extends Thread {
-        final SendReceive connectionHandler;
+        private final SendReceive connectionHandler;
         private boolean selfMessageIsActive;
         private boolean loadFileFlag;
 
@@ -183,7 +183,6 @@ public class Server {
                     Message message = new Message("server: " + fromClient.getSender());
                     message.setText(fromClient.getSentAt() + " " + fromClient.getSender() + ": " + fromClient.getText());
                     messages.add(message);
-                    System.out.println(messages);
                 } else if (Objects.requireNonNull(fromClient).getText().equals("/files")) {
                     selfMessageIsActive = true;
                     showFiles();

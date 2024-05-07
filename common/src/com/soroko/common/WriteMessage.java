@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Scanner;
 
 public class WriteMessage extends Thread {
-    SendReceive connectionHandler;
+    private SendReceive connectionHandler;
     private String username;
     private Scanner scanner;
     private int counter;
