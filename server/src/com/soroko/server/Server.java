@@ -20,7 +20,6 @@ public class Server {
     private final int port;
     private final List<Message> messages = new CopyOnWriteArrayList<>();
     private final List<SendReceive> connectionHandlers = new CopyOnWriteArrayList<>();
-    private final List<ThreadForClient> threadForClients = new CopyOnWriteArrayList<>();
     private final List<FileMessage> fileMessages = new CopyOnWriteArrayList<>();
     private final int fileSize;
     private final int amountOfSymbols;
@@ -38,9 +37,7 @@ public class Server {
                     Socket socket = serverSocket.accept();
                     SendReceive connectionHandler = new SendReceive(socket);
                     connectionHandlers.add(connectionHandler);
-                    ThreadForClient threadForClient = new ThreadForClient(connectionHandler);
-                    threadForClient.start();
-                    threadForClients.add(threadForClient);
+                    new ThreadForClient(connectionHandler).start();
                 } catch (Exception e) {
                     System.out.println("Проблема с установкой нового соединения");
                 }
