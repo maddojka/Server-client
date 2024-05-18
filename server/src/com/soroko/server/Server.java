@@ -197,7 +197,7 @@ public class Server {
                 if (!messages.isEmpty()) message = messages.getLast();
                 for (SendReceive handler : connectionHandlers) {
                     try {
-                        if ((handler != this.connectionHandler && !selfMessageIsActive) ||
+                        if ((handler != this.connectionHandler && !this.selfMessageIsActive) ||
                                 (handler == this.connectionHandler && this.loadFileFlag)) {
                             handler.send(Objects.requireNonNull(message));
                         }
