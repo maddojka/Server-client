@@ -1,7 +1,8 @@
 package com.soroko.client;
 
-import com.soroko.common.common.SendReceive;
-import com.soroko.common.common.Message;
+import com.soroko.common.FileMessage;
+import com.soroko.common.SendReceive;
+import com.soroko.common.Message;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -12,40 +13,124 @@ public class Client {
     private InetSocketAddress address;
     private String username;
     private Scanner scanner;
+    private SendReceive connectionHandler;
+    private boolean FilesAreEmpty;
 
     public Client(InetSocketAddress address) {
         this.address = address;
         scanner = new Scanner(System.in);
     }
 
+    public void saveCommand() throws InterruptedException {
+        String filepath = "";
+        String description = "";
+        if (!FilesAreEmpty) {
+            System.out.println("Укажите папку, в которую необходимо загрузить файл из сервера");
+            filepath = scanner.nextLine();
+            System.out.println("Введите название файла из списка доступных файлов:");
+            description = scanner.nextLine();
+        }
+        FileMessage fileMessage = new FileMessage(description, filepath);
+        fileMessage.setFilePath(filepath);
+        try {
+            connectionHandler.sendFileDescription(fileMessage);
+        } catch (IOException e) {
+            connectionHandler.close();
+        }
+    }
 
+    public void loadCommand() {
+        System.out.println("Введите путь, по которому необходимо загрузить файл на сервер");
+        String filepath = scanner.nextLine();
+        System.out.println("Введите описание файла:");
+        String description = scanner.nextLine();
+        System.out.println("Введите размер файла в мегабайтах:");
+        int size = scanner.nextInt();
+        FileMessage fileMessage = new FileMessage(description, size);
+        fileMessage.setFilePath(filepath);
+        try {
+            connectionHandler.sendFileDescription(fileMessage);
+        } catch (IOException e) {
+            connectionHandler.close();
+        }
+    }
 
-    public void startClient() {
-        System.out.println("Введите имя");
-        username = scanner.nextLine();
-        while (true) {
-            System.out.println("Введите текст сообщения");
-            String text = scanner.nextLine();
-            if (text.equals("/exit")) break;
-            try (SendReceive connectionHandler
-                         = new SendReceive(new Socket(
-                    address.getHostName(),
-                    address.getPort()
-            ))) {
+    private class Writer extends Thread {
+        public void run() {
+            boolean isLoadCommand = false;
+            boolean isSaveCommand = false;
+            while (true) {
+                if (isLoadCommand) {
+                    loadCommand();
+                } else if (isSaveCommand) {
+                    try {
+                        saveCommand();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else System.out.println("Введите текст сообщения");
+                isLoadCommand = false;
+                isSaveCommand = false;
+                String text = scanner.nextLine();
+                if (text.equalsIgnoreCase("/loadfile")) isLoadCommand = true;
+                if (text.equalsIgnoreCase("/savefile")) isSaveCommand = true;
+                if (text.equalsIgnoreCase("/exit")) {
+                    System.out.println("Соединение прекращено");
+                    connectionHandler.close();
+                    break;
+                }
                 Message message = new Message(username);
                 message.setText(text);
                 try {
                     connectionHandler.send(message);
-                    Message fromServer = connectionHandler.receive();
-                    System.out.println(fromServer.getText());
-                } catch (IOException e) {
+                } catch (IOException ignored) {
+                    connectionHandler.close();
                 }
-
-            } catch (Exception e) {
             }
         }
     }
+
+    private class Reader extends Thread {
+        public void run() {
+            while (true) {
+                Message message;
+                try {
+                    message = connectionHandler.receive();
+                    FilesAreEmpty = message.getFilesAreEmpty();
+                    if (message.getText().equalsIgnoreCase("/exit")) {
+                        connectionHandler.close();
+                        break;
+                    }
+                } catch (IOException ignored) {
+                    connectionHandler.close();
+                    break;
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println(message.getText());
+            }
+        }
+    }
+
+    public void createConnection() throws IOException {
+        connectionHandler = new SendReceive(
+                new Socket(address.getHostName(), address.getPort()));
+    }
+
+    public void startClient() {
+        System.out.println("Введите имя");
+        username = scanner.nextLine();
+        try {
+            createConnection();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        new Writer().start();
+        new Reader().start();
+    }
 }
+
+
 
 
 
